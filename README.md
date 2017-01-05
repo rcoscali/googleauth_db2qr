@@ -50,6 +50,7 @@ cohen@PCL30164 $
 ```
 
 Here are some images:
+
 image                                | url
 -------------------------------------|---------------------
 * [ScreenShot QRCode](https://github.com/rcoscali/googleauth_db2qr/blob/master/QRcode.png): | [```https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/QRcode.png```](https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/QRcode.png)
