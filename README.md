@@ -4,6 +4,7 @@ Use an android extracted sqlite3 db for generating QR codes. Allows to recreate 
 here is an example:
 
 ```bash
+cohen@PCL30164 $ googleauth_db2qr google-authenticator2.db
 Identification               cohen@PCLX30164
 Email                        cohen@PCLX30164
 Provider                     0
@@ -14,6 +15,7 @@ Normalized secret            F4YK4HPPDGYMBOFR
 
 URL                          otpauth://totp/cohen%40PCLX30164?secret=F4YK4HPPDGYMBOFR&issuer=&original_name=cohen%40PCLX30164&
 
+```
 █████████████████████████████████████████████████
 █████████████████████████████████████████████████
 ████ ▄▄▄▄▄ ██ ▄▀▀▀█▀ ▀█▄▄▄▄▄█▄▀█ ▀▄▄██ ▄▄▄▄▄ ████
@@ -39,4 +41,3 @@ URL                          otpauth://totp/cohen%40PCLX30164?secret=F4YK4HPPDGY
 ████▄▄▄▄▄▄▄█▄█▄▄▄▄▄▄▄█▄▄▄▄▄▄▄██▄█▄██▄█▄█▄▄█▄█████
 █████████████████████████████████████████████████
 █████████████████████████████████████████████████
-```
