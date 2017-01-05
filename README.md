@@ -49,8 +49,8 @@ URL                          otpauth://totp/cohen%40PCLX30164?secret=F4YK4HPPDGY
 cohen@PCL30164 $ 
 ```
 
-* [ScreenShot QRCode](https://github.com/rcoscali/googleauth_db2qr/blob/master/QRcode.png): ```https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/QRcode.png```
-* [ScreenShot exec](https://github.com/rcoscali/googleauth_db2qr/blob/master/ScreenShot.png):   https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/ScreenShot.png
-* [PNG QRcode](https://github.com/rcoscali/googleauth_db2qr/blob/master/cohen%40PCLX30164.png):        https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/cohen@PCLX30164.png
-* [SVG QRcode](https://github.com/rcoscali/googleauth_db2qr/blob/master/cohen%40PCLX30164.svg):        https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/cohen@PCLX30164.svg
+* [ScreenShot QRCode](https://github.com/rcoscali/googleauth_db2qr/blob/master/QRcode.png): [```https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/QRcode.png```](https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/QRcode.png)
+* [ScreenShot exec](https://github.com/rcoscali/googleauth_db2qr/blob/master/ScreenShot.png):[```   https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/ScreenShot.png```](https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/ScreenShot.png)
+* [PNG QRcode](https://github.com/rcoscali/googleauth_db2qr/blob/master/cohen%40PCLX30164.png):[```        https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/cohen@PCLX30164.png```](https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/cohen@PCLX30164.png)
+* [SVG QRcode](https://github.com/rcoscali/googleauth_db2qr/blob/master/cohen%40PCLX30164.svg):[```        https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/cohen@PCLX30164.svg```](https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/cohen@PCLX30164.svg)
 
