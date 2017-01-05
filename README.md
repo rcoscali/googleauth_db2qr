@@ -48,7 +48,6 @@ URL                          otpauth://totp/cohen%40PCLX30164?secret=F4YK4HPPDGY
 
 cohen@PCL30164 $ 
 ```
-content                  | url
 -------------------------|---------------------
 * [ScreenShot QRCode](https://github.com/rcoscali/googleauth_db2qr/blob/master/QRcode.png): | [```https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/QRcode.png```](https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/QRcode.png)
 * [ScreenShot exec](https://github.com/rcoscali/googleauth_db2qr/blob/master/ScreenShot.png): | [```   https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/ScreenShot.png```](https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/ScreenShot.png)
