@@ -1,0 +1,115 @@
+#!/bin/bash
+
+ANSISEQ_CLEAR="\x1b[2J"
+ANSISEQ_HOMECURSOR="\x1b[;H"
+ANSISEQ_NORMALTEXT="\x1b[0m"
+ANSISEQ_UNDERLINE="\x1b[4m"
+ANSISEQ_REVERSEVDO="\x1b[7m"
+
+function _clear_screen()
+{
+    echo -ne "$ANSISEQ_CLEAR$ANSISEQ_HOMECURSOR"
+}
+
+function _wait_input()
+{
+    read _dummy
+    if test "x$_dummy" = "xq" -o "x$_dummy" = "xQ"; then
+	exit
+    fi
+}
+
+function _echo_hdr()
+{
+    msg=$1
+    echo -ne "$ANSISEQ_REVERSEVDO$msg$ANSISEQ_NORMALTEXT"
+}
+
+function _echo_hdr_n_field()
+{
+    hdr=$1
+    msg=$2
+    hdrlen=`echo $hdr | wc -c`
+    dummylen=$((30 - $hdrlen))
+    _echo_hdr "$1"
+    while test $dummylen -gt 0; do echo -ne " "; dummylen=$(($dummylen-1)); done
+    echo -ne "$2\n"
+}
+
+function _get_cursor_line()
+{
+    echo -ne "\x1b6n"
+}
+
+function _main()
+{
+    DB=$1
+    _clear_screen
+    for id in `echo "select _id from accounts;" | sqlite3 $DB`
+    do
+	secret=`echo "select secret from accounts where _id=$id;" | sqlite3 $DB`
+	secret_norm=`echo "$secret" | tr '[a-z]' '[A-Z]' | sed -e 's,\s,,g'`
+	email=`echo "select email from accounts where _id=$id;" | sqlite3 $DB`
+	email_ue=`urlencode "$email"`
+	provider=`echo "select provider from accounts where _id=$id;" | sqlite3 $DB`
+	provider_ue=`urlencode "$provider"`
+	original_name=`echo "select original_name from accounts where _id=$id;" | sqlite3 $DB`
+	original_name_ue=`urlencode "$original_name"`
+	issuer=`echo "select issuer from accounts where _id=$id;" | sqlite3 $DB`
+	issuer_ue=`urlencode "$issuer"`
+	if test "x$email" != "x"
+	then
+	    identification="$email"
+	else
+	    if test "x$original_name" != "x"
+	    then
+		identification="$original_name"
+	    else
+		identification="$issuer: $email"
+	    fi
+	fi
+	identification_ue=`urlencode "$identification"`
+	url="otpauth://totp/$identification_ue?secret=$secret_norm&issuer=$issuer_ue&original_name=$original_name_ue&"
+	
+	_echo_hdr_n_field "Identification" "$identification"
+	_echo_hdr_n_field "Email" "$email"
+	_echo_hdr_n_field "Provider" "$provider"
+	_echo_hdr_n_field "Issuer" "$issuer"
+	_echo_hdr_n_field "Original name" "$original_name"
+	_echo_hdr_n_field "Secret" "$secret"
+	_echo_hdr_n_field "Normalized secret" "$secret_norm"
+
+	echo
+	
+	_echo_hdr_n_field "URL" "$url"
+
+	echo
+	
+	qrencode -l M -d 300 -s 10 -t UTF8 "$url"
+	qrencode -o "$email${issuer:+-}$issuer.svg" --rle -l M -d 300 -s 10 -t SVG "$url"
+
+	qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
+	display "$email${issuer:+-}$issuer.png" &
+	pid=$!
+
+	_wait_input
+	kill -9 $pid
+	_clear_screen
+
+    done 2>/dev/null
+}
+
+if test $# -lt 1
+then
+    >&2 bash -c "echo \"error: missing database filename argument !\"; \
+         echo; \
+         echo \"usage: $0 <DBFILE>\""
+fi
+
+while test $# -gt 0
+do
+    _main $1
+    shift
+done
+
+
