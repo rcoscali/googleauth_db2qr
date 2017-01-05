@@ -47,3 +47,6 @@ URL                          otpauth://totp/cohen%40PCLX30164?secret=F4YK4HPPDGY
 
 cohen@PCL30164 $ 
 ```
+
+ScreenShot QRCode: https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/QRcode.png
+ScreenShot exec:   https://raw.githubusercontent.com/rcoscali/googleauth_db2qr/master/ScreenShot.png
