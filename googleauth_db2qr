@@ -20,6 +20,10 @@
 # Copyright 2017 Rémi Cohen-Scali
 #
 
+test -x `which urlencode` || exit "Missing urlencode command! Please install it ... (apt/rpm)"
+test -x `which qrencode` || exit "Missing qrencode command! Please install it ... (apt/rpm)"
+test -x `which node` || test -x `which nodejs` || exit "Missing node or nodejs command! Please install it ... (apt/rpm)"
+
 ANSISEQ_CLEAR="\x1b[2J"
 ANSISEQ_HOMECURSOR="\x1b[;H"
 ANSISEQ_NORMALTEXT="\x1b[0m"
@@ -64,19 +68,26 @@ function _get_cursor_line()
 function _main()
 {
     DB=$1
+    images=""
     _clear_screen
+    nodescript="const http = require('http'); const fs = require('fs'); var accounts = [{ secret: '"
     for id in `echo "select _id from accounts;" | sqlite3 $DB`
     do
 	secret=`echo "select secret from accounts where _id=$id;" | sqlite3 $DB`
 	secret_norm=`echo "$secret" | tr '[a-z]' '[A-Z]' | sed -e 's,\s,,g'`
+        nodescript="$nodescript$secret_norm', account: '"
 	email=`echo "select email from accounts where _id=$id;" | sqlite3 $DB`
 	email_ue=`urlencode "$email"`
+        nodescript="$nodescript$email_eu', provider: '"
 	provider=`echo "select provider from accounts where _id=$id;" | sqlite3 $DB`
 	provider_ue=`urlencode "$provider"`
+        nodescript="$nodescript$provider_eu', original_name: '"
 	original_name=`echo "select original_name from accounts where _id=$id;" | sqlite3 $DB`
 	original_name_ue=`urlencode "$original_name"`
+        nodescript="$nodescript$original_name_eu', issuer: '"
 	issuer=`echo "select issuer from accounts where _id=$id;" | sqlite3 $DB`
 	issuer_ue=`urlencode "$issuer"`
+        nodescript="$nodescript$issuer_eu', identification: '"
 	if test "x$email" != "x"
 	then
 	    identification="$email"
@@ -89,7 +100,9 @@ function _main()
 	    fi
 	fi
 	identification_ue=`urlencode "$identification"`
+        nodescript="$nodescript$identification', url: '"
 	url="otpauth://totp/$identification_ue?secret=$secret_norm&issuer=$issuer_ue&original_name=$original_name_ue&"
+        nodescript="$nodescript$url', image: '"
 	
 	_echo_hdr_n_field "Identification" "$identification"
 	_echo_hdr_n_field "Email" "$email"
@@ -101,7 +114,7 @@ function _main()
 
 	echo
 	
-	_echo_hdr_n_field "URL" "$url"
+	test -z "NO_TERM_OUTPUT" _echo_hdr_n_field "URL" "$url"
 
 	echo
 	
@@ -109,21 +122,36 @@ function _main()
 	qrencode -o "$email${issuer:+-}$issuer.svg" --rle -l M -d 300 -s 10 -t SVG "$url"
 
 	qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
-	display "$email${issuer:+-}$issuer.png" &
+	test -z "$NO_DISPLAY" || display "$email${issuer:+-}$issuer.png" &
 	pid=$!
-
-	_wait_input
-	kill -9 $pid
+        nodescript="$nodescript$email${issuer:+-}$issuer.png'},{secret: '"
+        
+	test -z "$NO_WAIT" ||_wait_input
+	test -z "$NO_DISPLAY" || kill -9 $pid
 	_clear_screen
 
-    done 2>/dev/null
+    done 2>/dev/null    
+    nodescript=`echo $nodescript | sed -e "s/,{secret: '$/];/"`
+    nodescript="$nodescript http.createServer(function(request, response) {    response.setHeader('Content-Type', 'text/html');    response.writeHead(200);    response.write(\"<html><body>\");    for (var entry in accounts) {        contents = fs.readFileSync(accounts[entry].image);        response.write(\"<h1>\" + accounts[entry].identification + \"</h1>\");        response.write(\"<p><table><tr><td>secret: </td><td>\" + accounts[entry].secret + \"</td></tr>\");        response.write(\"<tr><td>provider: </td><td>\" + accounts[entry].provider + \"</td></tr>\");        response.write(\"<tr><td>original_name: </td><td>\" + accounts[entry].original_name + \"</td></tr>\");        response.write(\"<tr><td>issuer: </td><td>\" + accounts[entry].issuer + \"</td></tr>\");        response.write(\"<tr><td>identification: </td><td>\" + accounts[entry].identification + \"</td></tr>\");        response.write(\"<tr><td>url: </td><td><a href=\\\"\" + accounts[entry].url + \"\\\">\" + accounts[entry].url + \"</a></td></tr>\");        response.write(\"<tr><td>image: </td><td>\" + accounts[entry].image + \"</td></tr>\");        response.write(\"<tr><td colspan=\\\"2\\\"><center><img src=\\\"data:image/png;base64,\"+contents.toString('base64')+\"\\\" width=\\\"300\\\" height=\\\"300\\\"></img></center></td></tr></table></p>\");    };    response.end(\"</body></html>\");}).listen(8080);console.log('open http://localhost:8080/');console.log('listening port 8080 for incoming connections ...');"
+    
+    test -x `which nodejs` && echo $nodescript > serv.js && nodejs serv.js
 }
 
-if test $# -lt 1
+if test "$1" == "help" -o "$1" == "-help" -o "$1" == "--help" -o "$1" == "-h"
+then
+    shift
+fi
+
+if test "$#" -lt 1 
 then
     >&2 bash -c "echo \"error: missing database filename argument !\"; \
          echo; \
-         echo \"usage: $0 <DBFILE>\""
+         echo \"usage: $0 <DBFILE>\"
+    echo \"usage:    use environment variables for disabling some features:\"
+    echo \"usage:      - set NO_TERM_OUTPUT to disable display in terminal\"
+    echo \"usage:      - set NO_DISPLAY to disable display with image magic\"
+    echo \"usage:      - set NO_WAIT to disable pausing between each account\"
+    echo \"usage:      - set NO_NODE_JS to disable running http server\""
 fi
 
 while test $# -gt 0
