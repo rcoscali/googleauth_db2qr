@@ -130,7 +130,20 @@ function _main()
 	test -z "$NO_DISPLAY" || kill -9 $pid
 	_clear_screen
 
+	## Create import file for Chrome Authenticator https://github.com/Sneezry/authenticator
+	## {
+        ##   "<md5 hash of secret>": {
+        ##   "account": "<account>",
+        ##   "encrypted": false,
+        ##   "hash": "<md5 hash of secret>",
+        ##   "issuer": "<issuer>",
+        ##   "secret": "<secret>",
+        ##   "type": "totp"
+        ##  },
+    ...
+}
     done 2>/dev/null    
+
     nodescript=`echo $nodescript | sed -e "s/,{secret: '$/];/"`
     nodescript="$nodescript http.createServer(function(request, response) {    response.setHeader('Content-Type', 'text/html');    response.writeHead(200);    response.write(\"<html><body>\");    for (var entry in accounts) {        contents = fs.readFileSync(accounts[entry].image);        response.write(\"<h1>\" + accounts[entry].identification + \"</h1>\");        response.write(\"<p><table><tr><td>secret: </td><td>\" + accounts[entry].secret + \"</td></tr>\");        response.write(\"<tr><td>provider: </td><td>\" + accounts[entry].provider + \"</td></tr>\");        response.write(\"<tr><td>original_name: </td><td>\" + accounts[entry].original_name + \"</td></tr>\");        response.write(\"<tr><td>issuer: </td><td>\" + accounts[entry].issuer + \"</td></tr>\");        response.write(\"<tr><td>identification: </td><td>\" + accounts[entry].identification + \"</td></tr>\");        response.write(\"<tr><td>url: </td><td><a href=\\\"\" + accounts[entry].url + \"\\\">\" + accounts[entry].url + \"</a></td></tr>\");        response.write(\"<tr><td>image: </td><td>\" + accounts[entry].image + \"</td></tr>\");        response.write(\"<tr><td colspan=\\\"2\\\"><center><img src=\\\"data:image/png;base64,\"+contents.toString('base64')+\"\\\" width=\\\"300\\\" height=\\\"300\\\"></img></center></td></tr></table></p>\");    };    response.end(\"</body></html>\");}).listen(8080);console.log('open http://localhost:8080/');console.log('listening port 8080 for incoming connections ...');"
     
