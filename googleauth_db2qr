@@ -20,17 +20,30 @@
 # Copyright 2017 Rémi Cohen-Scali
 #
 
-## Checking some utilities needed for this script to behave correctly: urlencode, qrencode & node (NodeJS)
+## Checking some utilities needed for this script to behave correctly: urlencode, qrencode, node (NodeJS), sqlite3 & md5sum
 ## For installing these on ubuntu use:
 ## Ubuntu  17.10.1:
 ##  >>$ sudo apt install -y gridsite-clients
-##  >>$ sudo apt install qrencode
-##  >>$ sudo apt install nodejs
-##  >>$ sudo apt install sqlite3
-test -x `which urlencode` || exit "Missing urlencode command! Please install it ... (apt/rpm)"
-test -x `which qrencode` || exit "Missing qrencode command! Please install it ... (apt/rpm)"
-test -x `which node` || test -x `which nodejs` || exit "Missing node or nodejs command! Please install it ... (apt/rpm)"
-test -x `which sqlite3` || test -x `which sqlite` || exit "Missing sqlite3 command! Please install it ... (apt/rpm)"
+##  >>$ sudo apt install -y qrencode
+##  >>$ sudo apt install -y nodejs
+##  >>$ sudo apt install -y sqlite3
+##  >>$ sudo apt install -y core-utils
+if test "x" == "x`which urlencode`"; then
+    exit "Missing urlencode command! Please install it ... (apt/rpm)"
+fi
+if test "x" == "x`which qrencode`"; then
+    exit "Missing qrencode command! Please install it ... (apt/rpm)"
+fi
+if test "x" == "x`which node`" -a "x" == "x`which nodejs`"; then
+    exit "Missing node or nodejs command! Please install it ... (apt/rpm)"
+fi
+if test "x" == "x`which sqlite3`"; then
+    exit "Missing sqlite3 command! Please install it ... (apt/rpm)"
+fi
+if test "x" == "x`which md5sum`"; then
+    exit "Missing md5sum command! Please install it ... (apt/rpm)"
+fi
+
 
 ## ANSI sequences for handling terminal display
 ANSISEQ_CLEAR="\x1b[2J"
@@ -75,13 +88,13 @@ function _main()
     ## Start of the NodeJS script
     nodescript="const http = require('http'); const fs = require('fs'); var accounts = [{ secret: '"
     ## Init a json file for importing entries in Neezy Authenticator
-    test -z "NO_AUTH_JSON_IMPORT" && echo "{" > NeezyAuthenticator.json
+    test -z "$NO_AUTH_JSON_IMPORT" && (echo "Init json files ..."; rm -f authenticator.json && echo "{" > authenticator.json)
     ## for 
     for id in `echo "select _id from accounts;" | sqlite3 $DB`
     do
         secret=`echo "select secret from accounts where _id=$id;" | sqlite3 $DB`
         secret_norm=`echo "$secret" | tr '[a-z]' '[A-Z]' | sed -e 's,\s,,g'`
-        secret_md5=`echo -n $secret_norm | cut -f 1 -d ' '`
+        secret_md5=`echo -n $secret_norm | md5sum -t | cut -f 1 -d ' '`
         nodescript="$nodescript$secret_norm', account: '"
         email=`echo "select email from accounts where _id=$id;" | sqlite3 $DB`
         email_ue=`urlencode "$email"`
@@ -111,30 +124,32 @@ function _main()
         url="otpauth://totp/$identification_ue?secret=$secret_norm&issuer=$issuer_ue&original_name=$original_name_ue&"
         nodescript="$nodescript$url', image: '"
         
-        _echo_hdr_n_field "Identification" "$identification"
-        _echo_hdr_n_field "Email" "$email"
-        _echo_hdr_n_field "Provider" "$provider"
-        _echo_hdr_n_field "Issuer" "$issuer"
-        _echo_hdr_n_field "Original name" "$original_name"
-        _echo_hdr_n_field "Secret" "$secret"
-        _echo_hdr_n_field "Normalized secret" "$secret_norm"
+        test -z "$NO_TERM_OUTPUT" && {
+            _echo_hdr_n_field "Identification" "$identification"
+            _echo_hdr_n_field "Email" "$email"
+            _echo_hdr_n_field "Provider" "$provider"
+            _echo_hdr_n_field "Issuer" "$issuer"
+            _echo_hdr_n_field "Original name" "$original_name"
+            _echo_hdr_n_field "Secret" "$secret"
+            _echo_hdr_n_field "Normalized secret" "$secret_norm"
+	}
 
-        echo
+        test -z "$NO_TERM_OUTPUT" && echo
         
-        test -z "NO_TERM_OUTPUT" _echo_hdr_n_field "URL" "$url"
+        test -z "$NO_TERM_OUTPUT" && w_echo_hdr_n_field "URL" "$url"
 
-        echo
+        test -z "$NO_TERM_OUTPUT" && echo
 
-        qrencode -l M -d 300 -s 10 -t UTF8 "$url"
-        qrencode -o "$email${issuer:+-}$issuer.svg" --rle -l M -d 300 -s 10 -t SVG "$url"
+        test -z "$NO_TERM_OUTPUT" && qrencode -l M -d 300 -s 10 -t UTF8 "$url"
+        test -z "$NO_TERM_OUTPUT" && qrencode -o "$email${issuer:+-}$issuer.svg" --rle -l M -d 300 -s 10 -t SVG "$url"
 
-        qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
-        test -z "$NO_DISPLAY" || display "$email${issuer:+-}$issuer.png" &
+        test -z "$NO_TERM_OUTPUT" && qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
+        test -z "$NO_DISPLAY" && display "$email${issuer:+-}$issuer.png" &
         pid=$!
         nodescript="$nodescript$email${issuer:+-}$issuer.png'},{secret: '"
         
-        test -z "$NO_WAIT" ||_wait_input
-        test -z "$NO_DISPLAY" || kill -9 $pid
+        test -z "$NO_WAIT" && _wait_input
+        test -z "$NO_DISPLAY" && kill -9 $pid
         _clear_screen
 
         ## Create import file for Chrome Authenticator https://github.com/Sneezry/authenticator
@@ -150,29 +165,29 @@ function _main()
         ##    },
         ##    ...
         ## }
-	test -z "NO_AUTH_JSON_IMPORT" && {
-	    echo "    \"$secret_md5\":"            >> NeezyAuthenticator.json
-	    echo "    {"                           >> NeezyAuthenticator.json
-	    echo "      \"account\": \"$email\","  >> NeezyAuthenticator.json
-	    echo "      \"encrypted\": false,"     >> NeezyAuthenticator.json
-	    echo "      \"hash\": ,"               >> NeezyAuthenticator.json
-	    echo "      \"issuer\": $issuer,"      >> NeezyAuthenticator.json
-	    echo "      \"secret\": $secret_norm," >> NeezyAuthenticator.json
-	    echo "      \"type\": totp,"           >> NeezyAuthenticator.json
-	    echo "    },"                          >> NeezyAuthenticator.json
+	test -z "$NO_AUTH_JSON_IMPORT" && {
+	    echo "    \"$secret_md5\":"            >> authenticator.json
+	    echo "    {"                           >> authenticator.json
+	    echo "      \"account\": \"$email\","  >> authenticator.json
+	    echo "      \"encrypted\": false,"     >> authenticator.json
+	    echo "      \"hash\": $secret_md5,"    >> authenticator.json
+	    echo "      \"issuer\": $issuer,"      >> authenticator.json
+	    echo "      \"secret\": $secret_norm," >> authenticator.json
+	    echo "      \"type\": totp,"           >> authenticator.json
+	    echo "    },"                          >> authenticator.json
 	}
         
     done 2>/dev/null    
 
     ## Terminate JSON file
-    test -z "NO_AUTH_JSON_IMPORT" && echo "}" >> NeezyAuthenticator.json
+    test -z "$NO_AUTH_JSON_IMPORT" && (echo "}" >> authenticator.json && echo "JSON file generated")
 
     ## Let's generate the nodeJS script for runnign the server displaying qrcodes in a browser
     ## URL for displaying qrcodes is 'http://localhost:8080/'
     nodescript=`echo $nodescript | sed -e "s/,{secret: '$/];/"`
     nodescript="$nodescript http.createServer(function(request, response) {    response.setHeader('Content-Type', 'text/html');    response.writeHead(200);    response.write(\"<html><body>\");    for (var entry in accounts) {        contents = fs.readFileSync(accounts[entry].image);        response.write(\"<h1>\" + accounts[entry].identification + \"</h1>\");        response.write(\"<p><table><tr><td>secret: </td><td>\" + accounts[entry].secret + \"</td></tr>\");        response.write(\"<tr><td>provider: </td><td>\" + accounts[entry].provider + \"</td></tr>\");        response.write(\"<tr><td>original_name: </td><td>\" + accounts[entry].original_name + \"</td></tr>\");        response.write(\"<tr><td>issuer: </td><td>\" + accounts[entry].issuer + \"</td></tr>\");        response.write(\"<tr><td>identification: </td><td>\" + accounts[entry].identification + \"</td></tr>\");        response.write(\"<tr><td>url: </td><td><a href=\\\"\" + accounts[entry].url + \"\\\">\" + accounts[entry].url + \"</a></td></tr>\");        response.write(\"<tr><td>image: </td><td>\" + accounts[entry].image + \"</td></tr>\");        response.write(\"<tr><td colspan=\\\"2\\\"><center><img src=\\\"data:image/png;base64,\"+contents.toString('base64')+\"\\\" width=\\\"300\\\" height=\\\"300\\\"></img></center></td></tr></table></p>\");    };    response.end(\"</body></html>\");}).listen(8080);console.log('open http://localhost:8080/');console.log('listening port 8080 for incoming connections ...');"
     
-    test -x `which nodejs` && echo $nodescript > serv.js && nodejs serv.js
+    test -z "$NO_NODE_JS" && (echo $nodescript > serv.js && nodejs serv.js)
 }
 
 ##
@@ -198,7 +213,8 @@ then
     echo \"usage:      - set NO_TERM_OUTPUT to disable display in terminal\"
     echo \"usage:      - set NO_DISPLAY to disable display with image magic\"
     echo \"usage:      - set NO_WAIT to disable pausing between each account\"
-    echo \"usage:      - set NO_NODE_JS to disable running http server\""
+    echo \"usage:      - set NO_NODE_JS to disable running http server\"
+    echo \"usage:      - set NO_AUTH_JSON_IMPORT to disable Chrome Authenticator JSON import file generation\""
 fi
 
 ## If several files are provided, iterate on each one provided 
