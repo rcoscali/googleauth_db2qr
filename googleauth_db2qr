@@ -20,146 +20,180 @@
 # Copyright 2017 Rémi Cohen-Scali
 #
 
+## Checking some utilities needed for this script to behave correctly: urlencode, qrencode & node (NodeJS)
+## For installing these on ubuntu use:
+## Ubuntu  17.10.1:
+##  >>$ sudo apt install -y gridsite-clients
+##  >>$ sudo apt install qrencode
+##  >>$ sudo apt install nodejs
+##  >>$ sudo apt install sqlite3
 test -x `which urlencode` || exit "Missing urlencode command! Please install it ... (apt/rpm)"
 test -x `which qrencode` || exit "Missing qrencode command! Please install it ... (apt/rpm)"
 test -x `which node` || test -x `which nodejs` || exit "Missing node or nodejs command! Please install it ... (apt/rpm)"
+test -x `which sqlite3` || test -x `which sqlite` || exit "Missing sqlite3 command! Please install it ... (apt/rpm)"
 
+## ANSI sequences for handling terminal display
 ANSISEQ_CLEAR="\x1b[2J"
 ANSISEQ_HOMECURSOR="\x1b[;H"
 ANSISEQ_NORMALTEXT="\x1b[0m"
 ANSISEQ_UNDERLINE="\x1b[4m"
 ANSISEQ_REVERSEVDO="\x1b[7m"
 
+## Function using ansi seqs for clearing screen
 function _clear_screen()
 {
-    echo -ne "$ANSISEQ_CLEAR$ANSISEQ_HOMECURSOR"
+    echo -ne "$ANSISEQ_CLEAR$ANSISEQ_HOMECURSOR";
 }
-
+## Function reading dummy var for waiting user entry
 function _wait_input()
 {
-    read _dummy
-    if test "x$_dummy" = "xq" -o "x$_dummy" = "xQ"; then
-	exit
-    fi
+    read _dummy; if test "x$_dummy" = "xq" -o "x$_dummy" = "xQ"; then exit; fi;
 }
-
+## Function using ansi seqs for displaying header
 function _echo_hdr()
 {
-    msg=$1
-    echo -ne "$ANSISEQ_REVERSEVDO$msg$ANSISEQ_NORMALTEXT"
+    msg=$1; echo -ne "$ANSISEQ_REVERSEVDO$msg$ANSISEQ_NORMALTEXT";
 }
-
+## Function display a DB record entry (a secret key and associated data)
 function _echo_hdr_n_field()
 {
-    hdr=$1
-    msg=$2
-    hdrlen=`echo $hdr | wc -c`
-    dummylen=$((30 - $hdrlen))
-    _echo_hdr "$1"
-    while test $dummylen -gt 0; do echo -ne " "; dummylen=$(($dummylen-1)); done
-    echo -ne "$2\n"
+    hdr=$1; msg=$2; hdrlen=`echo $hdr | wc -c`; dummylen=$((30 - $hdrlen)); _echo_hdr "$1"; while test $dummylen -gt 0; do echo -ne " "; dummylen=$(($dummylen-1)); done; echo -ne "$2\n";
 }
-
+## Function using ansi seqs for reading cursor current line number
 function _get_cursor_line()
 {
-    echo -ne "\x1b6n"
+    echo -ne "\x1b6n";
 }
-
+## Main 
 function _main()
 {
+    ## Database file (sqlite)
     DB=$1
+    ## Images we will create
     images=""
     _clear_screen
+    ## Start of the NodeJS script
     nodescript="const http = require('http'); const fs = require('fs'); var accounts = [{ secret: '"
+    ## Init a json file for importing entries in Neezy Authenticator
+    test -z "NO_AUTH_JSON_IMPORT" && echo "{" > NeezyAuthenticator.json
+    ## for 
     for id in `echo "select _id from accounts;" | sqlite3 $DB`
     do
-	secret=`echo "select secret from accounts where _id=$id;" | sqlite3 $DB`
-	secret_norm=`echo "$secret" | tr '[a-z]' '[A-Z]' | sed -e 's,\s,,g'`
+        secret=`echo "select secret from accounts where _id=$id;" | sqlite3 $DB`
+        secret_norm=`echo "$secret" | tr '[a-z]' '[A-Z]' | sed -e 's,\s,,g'`
+        secret_md5=`echo -n $secret_norm | cut -f 1 -d ' '`
         nodescript="$nodescript$secret_norm', account: '"
-	email=`echo "select email from accounts where _id=$id;" | sqlite3 $DB`
-	email_ue=`urlencode "$email"`
+        email=`echo "select email from accounts where _id=$id;" | sqlite3 $DB`
+        email_ue=`urlencode "$email"`
         nodescript="$nodescript$email_eu', provider: '"
-	provider=`echo "select provider from accounts where _id=$id;" | sqlite3 $DB`
-	provider_ue=`urlencode "$provider"`
+        provider=`echo "select provider from accounts where _id=$id;" | sqlite3 $DB`
+        provider_ue=`urlencode "$provider"`
         nodescript="$nodescript$provider_eu', original_name: '"
-	original_name=`echo "select original_name from accounts where _id=$id;" | sqlite3 $DB`
-	original_name_ue=`urlencode "$original_name"`
+        original_name=`echo "select original_name from accounts where _id=$id;" | sqlite3 $DB`
+        original_name_ue=`urlencode "$original_name"`
         nodescript="$nodescript$original_name_eu', issuer: '"
-	issuer=`echo "select issuer from accounts where _id=$id;" | sqlite3 $DB`
-	issuer_ue=`urlencode "$issuer"`
+        issuer=`echo "select issuer from accounts where _id=$id;" | sqlite3 $DB`
+        issuer_ue=`urlencode "$issuer"`
         nodescript="$nodescript$issuer_eu', identification: '"
-	if test "x$email" != "x"
-	then
-	    identification="$email"
-	else
-	    if test "x$original_name" != "x"
-	    then
-		identification="$original_name"
-	    else
-		identification="$issuer: $email"
-	    fi
-	fi
-	identification_ue=`urlencode "$identification"`
+        if test "x$email" != "x"
+        then
+            identification="$email"
+        else
+            if test "x$original_name" != "x"
+            then
+                identification="$original_name"
+            else
+                identification="$issuer: $email"
+            fi
+        fi
+        identification_ue=`urlencode "$identification"`
         nodescript="$nodescript$identification', url: '"
-	url="otpauth://totp/$identification_ue?secret=$secret_norm&issuer=$issuer_ue&original_name=$original_name_ue&"
+        url="otpauth://totp/$identification_ue?secret=$secret_norm&issuer=$issuer_ue&original_name=$original_name_ue&"
         nodescript="$nodescript$url', image: '"
-	
-	_echo_hdr_n_field "Identification" "$identification"
-	_echo_hdr_n_field "Email" "$email"
-	_echo_hdr_n_field "Provider" "$provider"
-	_echo_hdr_n_field "Issuer" "$issuer"
-	_echo_hdr_n_field "Original name" "$original_name"
-	_echo_hdr_n_field "Secret" "$secret"
-	_echo_hdr_n_field "Normalized secret" "$secret_norm"
+        
+        _echo_hdr_n_field "Identification" "$identification"
+        _echo_hdr_n_field "Email" "$email"
+        _echo_hdr_n_field "Provider" "$provider"
+        _echo_hdr_n_field "Issuer" "$issuer"
+        _echo_hdr_n_field "Original name" "$original_name"
+        _echo_hdr_n_field "Secret" "$secret"
+        _echo_hdr_n_field "Normalized secret" "$secret_norm"
 
-	echo
-	
-	test -z "NO_TERM_OUTPUT" _echo_hdr_n_field "URL" "$url"
+        echo
+        
+        test -z "NO_TERM_OUTPUT" _echo_hdr_n_field "URL" "$url"
 
-	echo
-	
-	qrencode -l M -d 300 -s 10 -t UTF8 "$url"
-	qrencode -o "$email${issuer:+-}$issuer.svg" --rle -l M -d 300 -s 10 -t SVG "$url"
+        echo
 
-	qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
-	test -z "$NO_DISPLAY" || display "$email${issuer:+-}$issuer.png" &
-	pid=$!
+        qrencode -l M -d 300 -s 10 -t UTF8 "$url"
+        qrencode -o "$email${issuer:+-}$issuer.svg" --rle -l M -d 300 -s 10 -t SVG "$url"
+
+        qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
+        test -z "$NO_DISPLAY" || display "$email${issuer:+-}$issuer.png" &
+        pid=$!
         nodescript="$nodescript$email${issuer:+-}$issuer.png'},{secret: '"
         
-	test -z "$NO_WAIT" ||_wait_input
-	test -z "$NO_DISPLAY" || kill -9 $pid
-	_clear_screen
+        test -z "$NO_WAIT" ||_wait_input
+        test -z "$NO_DISPLAY" || kill -9 $pid
+        _clear_screen
 
-	## Create import file for Chrome Authenticator https://github.com/Sneezry/authenticator
-	## {
-        ##   "<md5 hash of secret>": {
-        ##   "account": "<account>",
-        ##   "encrypted": false,
-        ##   "hash": "<md5 hash of secret>",
-        ##   "issuer": "<issuer>",
-        ##   "secret": "<secret>",
-        ##   "type": "totp"
-        ##  },
-    ...
-}
+        ## Create import file for Chrome Authenticator https://github.com/Sneezry/authenticator
+        ## {
+        ##    "<md5 hash of secret>":
+        ##    {
+        ##      "account": "<account>",
+        ##      "encrypted": false,
+        ##      "hash": "<md5 hash of secret>",
+        ##      "issuer": "<issuer>",
+        ##      "secret": "<secret>",
+        ##      "type": "totp"
+        ##    },
+        ##    ...
+        ## }
+	test -z "NO_AUTH_JSON_IMPORT" && {
+	    echo "    \"$secret_md5\":"            >> NeezyAuthenticator.json
+	    echo "    {"                           >> NeezyAuthenticator.json
+	    echo "      \"account\": \"$email\","  >> NeezyAuthenticator.json
+	    echo "      \"encrypted\": false,"     >> NeezyAuthenticator.json
+	    echo "      \"hash\": ,"               >> NeezyAuthenticator.json
+	    echo "      \"issuer\": $issuer,"      >> NeezyAuthenticator.json
+	    echo "      \"secret\": $secret_norm," >> NeezyAuthenticator.json
+	    echo "      \"type\": totp,"           >> NeezyAuthenticator.json
+	    echo "    },"                          >> NeezyAuthenticator.json
+	}
+        
     done 2>/dev/null    
 
+    ## Terminate JSON file
+    test -z "NO_AUTH_JSON_IMPORT" && echo "}" >> NeezyAuthenticator.json
+
+    ## Let's generate the nodeJS script for runnign the server displaying qrcodes in a browser
+    ## URL for displaying qrcodes is 'http://localhost:8080/'
     nodescript=`echo $nodescript | sed -e "s/,{secret: '$/];/"`
     nodescript="$nodescript http.createServer(function(request, response) {    response.setHeader('Content-Type', 'text/html');    response.writeHead(200);    response.write(\"<html><body>\");    for (var entry in accounts) {        contents = fs.readFileSync(accounts[entry].image);        response.write(\"<h1>\" + accounts[entry].identification + \"</h1>\");        response.write(\"<p><table><tr><td>secret: </td><td>\" + accounts[entry].secret + \"</td></tr>\");        response.write(\"<tr><td>provider: </td><td>\" + accounts[entry].provider + \"</td></tr>\");        response.write(\"<tr><td>original_name: </td><td>\" + accounts[entry].original_name + \"</td></tr>\");        response.write(\"<tr><td>issuer: </td><td>\" + accounts[entry].issuer + \"</td></tr>\");        response.write(\"<tr><td>identification: </td><td>\" + accounts[entry].identification + \"</td></tr>\");        response.write(\"<tr><td>url: </td><td><a href=\\\"\" + accounts[entry].url + \"\\\">\" + accounts[entry].url + \"</a></td></tr>\");        response.write(\"<tr><td>image: </td><td>\" + accounts[entry].image + \"</td></tr>\");        response.write(\"<tr><td colspan=\\\"2\\\"><center><img src=\\\"data:image/png;base64,\"+contents.toString('base64')+\"\\\" width=\\\"300\\\" height=\\\"300\\\"></img></center></td></tr></table></p>\");    };    response.end(\"</body></html>\");}).listen(8080);console.log('open http://localhost:8080/');console.log('listening port 8080 for incoming connections ...');"
     
     test -x `which nodejs` && echo $nodescript > serv.js && nodejs serv.js
 }
 
+##
+## Main
+##
+
+## Handle -help option
 if test "$1" == "help" -o "$1" == "-help" -o "$1" == "--help" -o "$1" == "-h"
 then
+    ## Switch to next argument
     shift
 fi
 
+## Handle android Google Authenticator's database filename argument
 if test "$#" -lt 1 
 then
+    ## If no argument was provided, display error...
     >&2 bash -c "echo \"error: missing database filename argument !\"; \
          echo; \
          echo \"usage: $0 <DBFILE>\"
+    ## ... & usage strings
     echo \"usage:    use environment variables for disabling some features:\"
     echo \"usage:      - set NO_TERM_OUTPUT to disable display in terminal\"
     echo \"usage:      - set NO_DISPLAY to disable display with image magic\"
@@ -167,10 +201,12 @@ then
     echo \"usage:      - set NO_NODE_JS to disable running http server\""
 fi
 
+## If several files are provided, iterate on each one provided 
 while test $# -gt 0
 do
+    ## Process one file ...
     _main $1
+    ## and switch to next one
     shift
 done
-
 
