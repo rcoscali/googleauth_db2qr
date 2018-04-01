@@ -49,7 +49,7 @@ URL                          otpauth://totp/cohen%40PCLX30164?secret=F4YK4HPPDGY
 cohen@PCL30164 $ 
 ```
 
-Here are some images:
+Here are some of the generated images:
 
 image                                | url
 -------------------------------------|---------------------
