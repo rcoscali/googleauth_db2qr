@@ -6,7 +6,7 @@ Script also generate some png and svg for the QRcode for eventual use.
 The script able to generate QRcodes displayed:
 - In a terminal
 - With the Image Magick display command
-- With NodeJS in a browser window (allows to use the scan QRcode feature of some Authenticator chrome extensions, see https://chrome.google.com/webstore/detail/authenticator/bhghoamapcdpbohphigoooaddinpkbai or https://github.com/Authenticator-Extension/Authenticator)
+- With NodeJS in a browser window (allows to use the scan QRcode feature of some Authenticator chrome extensions, see https://chrome.google.com/webstore/detail/authenticator/bhghoamapcdpbohphigoooaddinpkbai or https://github.com/Authenticator-Extension/Authenticator or https://addons.mozilla.org/en-US/firefox/addon/auth-helper/?src=external-github)
 
 It is also able to generate a JSON importation file for the Authenticator Chrome extension.
 These feature may be activated/deactivated through env var.
