@@ -89,7 +89,8 @@ function _main()
     nodescript="const http = require('http'); const fs = require('fs'); var accounts = [{ secret: '"
     ## Init a json file for importing entries in Neezy Authenticator
     test -z "$NO_AUTH_JSON_IMPORT" && (echo "Init json files ..."; rm -f authenticator.json && echo "{" > authenticator.json)
-    ## for 
+    ## for
+    idnr=0
     for id in `echo "select _id from accounts;" | sqlite3 $DB`
     do
         secret=`echo "select secret from accounts where _id=$id;" | sqlite3 $DB`
@@ -166,21 +167,24 @@ function _main()
         ##    ...
         ## }
 	test -z "$NO_AUTH_JSON_IMPORT" && {
-	    echo "    \"$secret_md5\":"            >> authenticator.json
-	    echo "    {"                           >> authenticator.json
-	    echo "      \"account\": \"$email\","  >> authenticator.json
-	    echo "      \"encrypted\": false,"     >> authenticator.json
-	    echo "      \"hash\": $secret_md5,"    >> authenticator.json
-	    echo "      \"issuer\": $issuer,"      >> authenticator.json
-	    echo "      \"secret\": $secret_norm," >> authenticator.json
-	    echo "      \"type\": totp,"           >> authenticator.json
-	    echo "    },"                          >> authenticator.json
+            if test $idnr -gt 0; then
+	        echo "    },"                              >> authenticator.json
+            fi
+	    echo "    \"$secret_md5\":"                >> authenticator.json
+	    echo "    {"                               >> authenticator.json
+	    echo "      \"account\": \"$email\","      >> authenticator.json
+	    echo "      \"encrypted\": false,"         >> authenticator.json
+	    echo "      \"hash\": \"$secret_md5\","    >> authenticator.json
+	    echo "      \"issuer\": \"$issuer\","      >> authenticator.json
+	    echo "      \"secret\": \"$secret_norm\"," >> authenticator.json
+	    echo "      \"type\": \"totp\""            >> authenticator.json
 	}
+        idnr=$(($idnr+1))
         
     done 2>/dev/null    
-
+    
     ## Terminate JSON file
-    test -z "$NO_AUTH_JSON_IMPORT" && (echo "}" >> authenticator.json && echo "JSON file generated")
+    test -z "$NO_AUTH_JSON_IMPORT" && (echo -e "    }\n}" >> authenticator.json && echo "JSON file generated")
 
     ## Let's generate the nodeJS script for runnign the server displaying qrcodes in a browser
     ## URL for displaying qrcodes is 'http://localhost:8080/'
