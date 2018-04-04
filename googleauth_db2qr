@@ -218,7 +218,13 @@ then
     echo \"usage:      - set NO_DISPLAY to disable display with image magic\"
     echo \"usage:      - set NO_WAIT to disable pausing between each account\"
     echo \"usage:      - set NO_NODE_JS to disable running http server\"
-    echo \"usage:      - set NO_AUTH_JSON_IMPORT to disable Chrome Authenticator JSON import file generation\""
+    echo \"usage:      - set NO_AUTH_JSON_IMPORT to disable Chrome Authenticator JSON import file generation\"
+    echo \"\"
+    echo \"See :\"
+    echo \"  https://github.com/Authenticator-Extension/Authenticator \"
+    echo \"or\"
+    echo \"  https://chrome.google.com/webstore/detail/authenticator/bhghoamapcdpbohphigoooaddinpkbai\"
+    echo \"  https://addons.mozilla.org/en-US/firefox/addon/auth-helper/?src=external-github\"
 fi
 
 ## If several files are provided, iterate on each one provided 
