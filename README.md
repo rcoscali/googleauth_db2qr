@@ -3,6 +3,28 @@ Use an android extracted sqlite3 db for generating QR codes. Allows to recreate 
 The database in android is in /data/data/com.google.android.apps.authenticator2/databases/databases
 I pull it from the device with adb and saved it in a google-authenticator2.db file
 Script also generate some png and svg for the QRcode for eventual use.
+The script able to generate QRcodes displayed:
+- In a terminal
+- With the Image Magick display command
+- With NodeJS in a browser window (allows to use the scan QRcode feature of some Authenticator chrome extensions, see https://chrome.google.com/webstore/detail/authenticator/bhghoamapcdpbohphigoooaddinpkbai or https://github.com/Authenticator-Extension/Authenticator)
+
+It is also able to generate a JSON importation file for the Authenticator Chrome extension.
+These feature may be activated/deactivated through env var.
+(Didn't have time for a better interface, actually it does the trick)
+
+```bash
+    cohen@mobdevrcs:~/Sources/googleauth_db2qr$ ./googleauth_db2qr
+    error: missing database filename argument !
+
+    usage: ./googleauth_db2qr <DBFILE>
+    usage:    use environment variables for disabling some features:
+    usage:      - set NO_TERM_OUTPUT to disable display in terminal
+    usage:      - set NO_DISPLAY to disable display with image magic
+    usage:      - set NO_WAIT to disable pausing between each account
+    usage:      - set NO_NODE_JS to disable running http server
+    usage:      - set NO_AUTH_JSON_IMPORT to disable Chrome Authenticator JSON import file generation
+    cohen@mobdevrcs:~/Sources/googleauth_db2qr$ 
+```
 
 here is an example:
 
