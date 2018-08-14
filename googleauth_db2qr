@@ -211,7 +211,7 @@ then
     ## If no argument was provided, display error...
     >&2 bash -c "echo \"error: missing database filename argument !\"; \
          echo; \
-         echo \"usage: $0 <DBFILE>\"
+         echo \"usage: $0 <DBFILE>\""
     ## ... & usage strings
     echo \"usage:    use environment variables for disabling some features:\"
     echo \"usage:      - set NO_TERM_OUTPUT to disable display in terminal\"

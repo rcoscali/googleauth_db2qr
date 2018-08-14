@@ -1,2 +1,4 @@
-
+*.json
+*.db
+*.swp
 serv\.js
