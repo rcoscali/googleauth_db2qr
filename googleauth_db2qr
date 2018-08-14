@@ -142,9 +142,9 @@ function _main()
         test -z "$NO_TERM_OUTPUT" && echo
 
         test -z "$NO_TERM_OUTPUT" && qrencode -l M -d 300 -s 10 -t UTF8 "$url"
-        test -z "$NO_TERM_OUTPUT" && qrencode -o "$email${issuer:+-}$issuer.svg" --rle -l M -d 300 -s 10 -t SVG "$url"
+        qrencode -o "$email${issuer:+-}$issuer.svg" --rle -l M -d 300 -s 10 -t SVG "$url"
 
-        test -z "$NO_TERM_OUTPUT" && qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
+        qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
         test -z "$NO_DISPLAY" && display "$email${issuer:+-}$issuer.png" &
         pid=$!
         nodescript="$nodescript$email${issuer:+-}$issuer.png'},{secret: '"
