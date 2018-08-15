@@ -1,0 +1,20 @@
+body {background-color: #668a66; }
+h1   {color: blue;}
+p    {background-color: #668866;}
+*, *:before, *:after {text-shadow: 1px 2px #66cdaa; }
+.nodehead {font-family: sans; font-weight: bold; font-style: oblique; font-size: 28px; color: #6666cd; }
+.nodesecretlabel {font-family: cursive; font-weight: bold; font-style: oblique; font-size: 12px; color: #6666cd; }
+.nodesecret {font-family: sans; font-weight: bold; font-style: normal; font-size: 20px; color: #66cd66; }
+.nodeproviderlabel {font-family: cursive; font-weight: bold; font-style: oblique; font-size: 12px; color: #6666cd; }
+.nodeprovider {font-family: sans; font-weight: bold; font-style: normal; font-size: 20px; color: #66cd66; }
+.nodeonamelabel {font-family: cursive; font-weight: bold; font-style: oblique; font-size: 12px; color: #6666cd; }
+.nodeoname {font-family: sans; font-weight: bold; font-style: normal; font-size: 20px; color: #66cd66; }
+.nodeissuerlabel {font-family: cursive; font-weight: bold; font-style: oblique; font-size: 12px; color: #6666cd; }
+.nodeissuer {font-family: sans; font-weight: bold; font-style: normal; font-size: 20px; color: #66cd66; }
+.nodeidlabel {font-family: cursive; font-weight: bold; font-style: oblique; font-size: 12px; color: #6666cd; }
+.nodeid {font-family: sans; font-weight: bold; font-style: normal; font-size: 20px; color: #66cd66; }
+.nodeurllabel {font-family: cursive; font-weight: bold; font-style: oblique; font-size: 12px; color: #6666cd; }
+.nodeurl {font-family: sans; font-weight: bold; font-style: normal; font-size: 20px; color: #66cd66; }
+.nodeimagelabel {font-family: cursive; font-weight: bold; font-style: oblique; font-size: 12px; color: #6666cd; }
+.nodeimagename {font-family: sans; font-weight: bold; font-style: normal; font-size: 20px; color: #66cd66; }
+.nodeimage {font-family: sans; font-weight: bold; font-style: normal; font-size: 20px; color: #66cd66; }

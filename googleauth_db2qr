@@ -86,7 +86,7 @@ function _main()
     images=""
     _clear_screen
     ## Start of the NodeJS script
-    nodescript="const http = require('http'); const fs = require('fs'); var accounts = [{ secret: '"
+    nodescript="const http=require('http');const fs=require('fs');var accounts=[{\"secret\":\""
     ## Init a json file for importing entries in Neezy Authenticator
     test -z "$NO_AUTH_JSON_IMPORT" && (echo "Init json files ..."; rm -f authenticator.json && echo "{" > authenticator.json)
     ## for
@@ -96,19 +96,19 @@ function _main()
         secret=`echo "select secret from accounts where _id=$id;" | sqlite3 $DB`
         secret_norm=`echo "$secret" | tr '[a-z]' '[A-Z]' | sed -e 's,\s,,g'`
         secret_md5=`echo -n $secret_norm | md5sum -t | cut -f 1 -d ' '`
-        nodescript="$nodescript$secret_norm', account: '"
+        nodescript="$nodescript$secret_norm\",\"account\":\""
         email=`echo "select email from accounts where _id=$id;" | sqlite3 $DB`
         email_ue=`urlencode "$email"`
-        nodescript="$nodescript$email_eu', provider: '"
+        nodescript="$nodescript$email_eu\",\"provider\":\""
         provider=`echo "select provider from accounts where _id=$id;" | sqlite3 $DB`
         provider_ue=`urlencode "$provider"`
-        nodescript="$nodescript$provider_eu', original_name: '"
+        nodescript="$nodescript$provider_eu\",\"original_name\":\""
         original_name=`echo "select original_name from accounts where _id=$id;" | sqlite3 $DB`
         original_name_ue=`urlencode "$original_name"`
-        nodescript="$nodescript$original_name_eu', issuer: '"
+        nodescript="$nodescript$original_name_eu\",\"issuer\":\""
         issuer=`echo "select issuer from accounts where _id=$id;" | sqlite3 $DB`
         issuer_ue=`urlencode "$issuer"`
-        nodescript="$nodescript$issuer_eu', identification: '"
+        nodescript="$nodescript$issuer_eu\",\"identification\":\""
         if test "x$email" != "x"
         then
             identification="$email"
@@ -121,9 +121,9 @@ function _main()
             fi
         fi
         identification_ue=`urlencode "$identification"`
-        nodescript="$nodescript$identification', url: '"
+        nodescript="$nodescript$identification\",\"url\":\""
         url="otpauth://totp/$identification_ue?secret=$secret_norm&issuer=$issuer_ue&original_name=$original_name_ue&"
-        nodescript="$nodescript$url', image: '"
+        nodescript="$nodescript$url\",\"image\":\""
         
         test -z "$NO_TERM_OUTPUT" && {
             _echo_hdr_n_field "Identification" "$identification"
@@ -147,7 +147,7 @@ function _main()
         qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
         test -z "$NO_DISPLAY" && display "$email${issuer:+-}$issuer.png" &
         pid=$!
-        nodescript="$nodescript$email${issuer:+-}$issuer.png'},{secret: '"
+        nodescript="$nodescript$email${issuer:+-}$issuer.png\"},{\"secret\":\""
         
         test -z "$NO_WAIT" && _wait_input
         test -z "$NO_DISPLAY" && kill -9 $pid
@@ -188,8 +188,8 @@ function _main()
 
     ## Let's generate the nodeJS script for runnign the server displaying qrcodes in a browser
     ## URL for displaying qrcodes is 'http://localhost:8080/'
-    nodescript=`echo $nodescript | sed -e "s/,{secret: '$/];/"`
-    nodescript="$nodescript http.createServer(function(request, response){response.setHeader('Content-Type','text/html');response.writeHead(200);response.write(\"<html><body>\");for(var entry in accounts){contents=fs.readFileSync(accounts[entry].image);response.write(\"<div class=\"nodehead\"><h1>\"+accounts[entry].identification+\"</h1></div>\");response.write(\"<p><table><tr><td><div class=\"nodesecretlabel\">secret</div></td><td><div class=\"nodesecret\">\"+accounts[entry].secret+\"</div></td></tr>\");response.write(\"<tr><td><div class=\"nodeproviderlabel\">provider</div></td><td><div class=\"nodeprovider\">\"+accounts[entry].provider+\"</div></td></tr>\");response.write(\"<tr><td><div class=\"nodeonamelabel\">original_name</div></td><td><div class=\"nodeoname\">\"+accounts[entry].original_name+\"</div></td></tr>\");response.write(\"<tr><td><div class=\"nodeissuerlabel\">issuer</div></td><td><div class=\"nodeissuer\">\"+accounts[entry].issuer+\"</div></td></tr>\");response.write(\"<tr><td><div class=\"nodeidlabel\">identification</div></td><td><div class=\"nodeid\">\"+accounts[entry].identification+\"</div></td></tr>\");response.write(\"<tr><td><div class=\"nodeurllabel\">url</div></td><td><div class=\"nodeurl\"><a href=\\\"\"+accounts[entry].url+\"\\\">\"+accounts[entry].url+\"</a></div></td></tr>\");response.write(\"<tr><td><div class=\"nodeimagelabel\">image</div></td><td><div class=\"nodeimage\">\"+accounts[entry].image+\"</div></td></tr>\");response.write(\"<tr><td colspan=\\\"2\\\"><div class=\"nodeimage\"><img src=\\\"data:image/png;base64,\"+contents.toString('base64')+\"\\\" width=\\\"300\\\" height=\\\"300\\\"></img></div></td></tr></table></p>\");};response.end(\"</body></html>\");}).listen(8080);console.log('open http://localhost:8080/');console.log('listening port 8080 for incoming connections ...');"    
+    nodescript=`echo $nodescript | sed -e "s/,{\"secret\":\"$/]/"`";http.createServer(function(request,response){if(request.url=='/styles.css'){fs.readFile('./styles.css',function(err,data){response.end(data);})}else{response.setHeader('Content-Type','text/html');response.writeHead(200);response.write(\"<html><head><meta name=\\\"viewport\\\" content=\\\"width=device-width*0.95, initial-scale=0.95\\\"><link rel=\\\"stylesheet\\\" href=\\\"https://www.w3schools.com/w3css/4/w3.css\\\"><link rel=\\\"stylesheet\\\" href=\\\"styles.css\\\"></head><body>\");for(var entry in accounts){contents=fs.readFileSync(accounts[entry].image);response.write(\"<div class=\\\"nodehead\\\"><h1>\"+accounts[entry].identification+\"</h1></div>\");response.write(\"<p><table><tr><td><div class=\\\"nodesecretlabel\\\">secret</div></td><td><div class=\\\"nodesecret\\\">\"+accounts[entry].secret+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeproviderlabel\\\">provider</div></td><td><div class=\\\"nodeprovider\\\">\"+accounts[entry].provider+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeonamelabel\\\">original_name</div></td><td><div class=\\\"nodeoname\\\">\"+accounts[entry].original_name+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeissuerlabel\\\">issuer</div></td><td><div class=\\\"nodeissuer\\\">\"+accounts[entry].issuer+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeidlabel\\\">identification</div></td><td><div class=\\\"nodeid\\\">\"+accounts[entry].identification+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeurllabel\\\">url</div></td><td><div class=\\\"nodeurl\\\"><a href=\\\"\"+accounts[entry].url+\"\\\">\"+accounts[entry].url+\"</a></div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeimagelabel\\\">QR code</div></td><td><div class=\\\"nodeimagename\\\">\"+accounts[entry].image+\"</div></td></tr>\");response.write(\"<tr><td colspan=\\\"2\\\"><div class=\\\"nodeimage w3-center\\\"><img src=\\\"data:image/png;base64,\"+contents.toString('base64')+\"\\\" width=\\\"300\\\" height=\\\"300\\\"></img></div></td></tr></table></p>\");};response.end(\"</body></html>\");}}).listen(8080);console.log('open http://localhost:8080/');console.log('listening port 8080 for incoming connections ...')"
+    echo $nodescript > /tmp/nodescript.js
     test -z "$NO_NODE_JS" && (echo $nodescript > serv.js && nodejs serv.js)
 }
 
