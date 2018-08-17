@@ -1,8 +1,10 @@
+*~
+#*#
 *.png
 *.svg
 *.json
 *.db
 *.swp
-serv\.js
+*serv\.js*
 
 change\.org\.key
