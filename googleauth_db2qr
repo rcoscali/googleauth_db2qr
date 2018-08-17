@@ -157,7 +157,8 @@ function _main()
         qrencode -o "$email_nblank${issuer_nblank:+-}$issuer_nblank.png" -l M -d 300 -s 10 -t PNG "$url"
         if test "$email_nblank${issuer_nblank:+-}$issuer_nblank" != 'cohen@PCLX30164';
         then
-            cleanups="$cleanups \"$email_nblank${issuer_nblank:+-}$issuer_nblank.png\" \"$email_nblank${issuer_nblank:+-}$issuer_nblank.svg\""
+            cleanups="$cleanups $email_nblank${issuer_nblank:+-}$issuer_nblank.png $email_nblank${issuer_nblank:+-}$issuer_nblank.svg"
+            echo "cleanups is: $cleanups"
         fi
         
         test -n "$NODEJS_ONLY" || (test -z "$NO_DISPLAY" && display "$email_nblank${issuer_nblank:+-}$issuer_nblank.png" &)
@@ -197,7 +198,7 @@ function _main()
         idnr=$(($idnr+1))
         
     done 2>/dev/null    
-    
+
     ## Terminate JSON file
     test -n "$NODEJS_ONLY" || (test -z "$NO_AUTH_JSON_IMPORT" && (echo -e "    }\n}" >> authenticator.json && echo "JSON file generated"))
 
