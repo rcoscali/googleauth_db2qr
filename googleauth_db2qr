@@ -20,6 +20,8 @@
 # Copyright 2017 Rémi Cohen-Scali
 #
 
+set -e
+
 ## Checking some utilities needed for this script to behave correctly: urlencode, qrencode, node (NodeJS), sqlite3 & md5sum
 ## For installing these on ubuntu use:
 ## Ubuntu  17.10.1:
@@ -44,6 +46,15 @@ if test "x" == "x`which md5sum`"; then
     exit "Missing md5sum command! Please install it ... (apt/rpm)"
 fi
 
+function cleanup
+{
+    echo -e "\nCleaning up ..."
+    /bin/rm -f $cleanups
+    echo "Clean! Terminate."
+}
+
+trap cleanup EXIT
+export cleanups=""
 
 ## ANSI sequences for handling terminal display
 ANSISEQ_CLEAR="\x1b[2J"
@@ -88,7 +99,7 @@ function _main()
     ## Start of the NodeJS script
     nodescript="const http=require('http');const fs=require('fs');var accounts=[{\"secret\":\""
     ## Init a json file for importing entries in Neezy Authenticator
-    test -z "$NO_AUTH_JSON_IMPORT" && (echo "Init json files ..."; rm -f authenticator.json && echo "{" > authenticator.json)
+    test -n "$NODEJS_ONLY" || (test -z "$NO_AUTH_JSON_IMPORT" && (echo "Init json files ..."; rm -f authenticator.json && echo "{" > authenticator.json))
     ## for
     idnr=0
     for id in `echo "select _id from accounts;" | sqlite3 $DB`
@@ -125,7 +136,7 @@ function _main()
         url="otpauth://totp/$identification_ue?secret=$secret_norm&issuer=$issuer_ue&original_name=$original_name_ue&"
         nodescript="$nodescript$url\",\"image\":\""
         
-        test -z "$NO_TERM_OUTPUT" && {
+        test -n "$NODEJS_ONLY" || (test -z "$NO_TERM_OUTPUT" && {
             _echo_hdr_n_field "Identification" "$identification"
             _echo_hdr_n_field "Email" "$email"
             _echo_hdr_n_field "Provider" "$provider"
@@ -133,24 +144,24 @@ function _main()
             _echo_hdr_n_field "Original name" "$original_name"
             _echo_hdr_n_field "Secret" "$secret"
             _echo_hdr_n_field "Normalized secret" "$secret_norm"
-	}
+	})
 
-        test -z "$NO_TERM_OUTPUT" && echo
-        
-        test -z "$NO_TERM_OUTPUT" && w_echo_hdr_n_field "URL" "$url"
+        test -n "$NODEJS_ONLY" || (test -z "$NO_TERM_OUTPUT" && echo)
+        test -n "$NODEJS_ONLY" || (test -z "$NO_TERM_OUTPUT" && w_echo_hdr_n_field "URL" "$url")
+        test -n "$NODEJS_ONLY" || (test -z "$NO_TERM_OUTPUT" && echo)
+        test -n "$NODEJS_ONLY" || (test -z "$NO_TERM_OUTPUT" && qrencode -l M -d 300 -s 10 -t UTF8 "$url")
 
-        test -z "$NO_TERM_OUTPUT" && echo
-
-        test -z "$NO_TERM_OUTPUT" && qrencode -l M -d 300 -s 10 -t UTF8 "$url"
         qrencode -o "$email${issuer:+-}$issuer.svg" --rle -l M -d 300 -s 10 -t SVG "$url"
-
+        cleanups="$cleanups $email${issuer:+-}$issuer.svg"
         qrencode -o "$email${issuer:+-}$issuer.png" -l M -d 300 -s 10 -t PNG "$url"
-        test -z "$NO_DISPLAY" && display "$email${issuer:+-}$issuer.png" &
+        cleanups="$cleanups $email${issuer:+-}$issuer.png"
+        
+        test -n "$NODEJS_ONLY" || (test -z "$NO_DISPLAY" && display "$email${issuer:+-}$issuer.png" &)
         pid=$!
         nodescript="$nodescript$email${issuer:+-}$issuer.png\"},{\"secret\":\""
         
-        test -z "$NO_WAIT" && _wait_input
-        test -z "$NO_DISPLAY" && kill -9 $pid
+        test -n "$NODEJS_ONLY" || (test -z "$NO_WAIT" && _wait_input)
+        test -z "$NO_DISPLAY" && test -n "$pid" && kill -9 $pid
         _clear_screen
 
         ## Create import file for Chrome Authenticator https://github.com/Sneezry/authenticator
@@ -166,7 +177,7 @@ function _main()
         ##    },
         ##    ...
         ## }
-	test -z "$NO_AUTH_JSON_IMPORT" && {
+	test -n "$NODEJS_ONLY" || (test -z "$NO_AUTH_JSON_IMPORT" && {
             if test $idnr -gt 0; then
 	        echo "    },"                              >> authenticator.json
             fi
@@ -178,19 +189,18 @@ function _main()
 	    echo "      \"issuer\": \"$issuer\","      >> authenticator.json
 	    echo "      \"secret\": \"$secret_norm\"," >> authenticator.json
 	    echo "      \"type\": \"totp\""            >> authenticator.json
-	}
+	})
         idnr=$(($idnr+1))
         
     done 2>/dev/null    
     
     ## Terminate JSON file
-    test -z "$NO_AUTH_JSON_IMPORT" && (echo -e "    }\n}" >> authenticator.json && echo "JSON file generated")
+    test -n "$NODEJS_ONLY" || (test -z "$NO_AUTH_JSON_IMPORT" && (echo -e "    }\n}" >> authenticator.json && echo "JSON file generated"))
 
     ## Let's generate the nodeJS script for runnign the server displaying qrcodes in a browser
     ## URL for displaying qrcodes is 'http://localhost:8080/'
-    nodescript=`echo $nodescript | sed -e "s/,{\"secret\":\"$/]/"`";http.createServer(function(request,response){if(request.url=='/styles.css'){fs.readFile('./styles.css',function(err,data){response.end(data);})}else{response.setHeader('Content-Type','text/html');response.writeHead(200);response.write(\"<html><head><meta name=\\\"viewport\\\" content=\\\"width=device-width*0.95, initial-scale=0.95\\\"><link rel=\\\"stylesheet\\\" href=\\\"https://www.w3schools.com/w3css/4/w3.css\\\"><link rel=\\\"stylesheet\\\" href=\\\"styles.css\\\"></head><body>\");for(var entry in accounts){contents=fs.readFileSync(accounts[entry].image);response.write(\"<div class=\\\"nodehead\\\"><h1>\"+accounts[entry].identification+\"</h1></div>\");response.write(\"<p><table><tr><td><div class=\\\"nodesecretlabel\\\">secret</div></td><td><div class=\\\"nodesecret\\\">\"+accounts[entry].secret+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeproviderlabel\\\">provider</div></td><td><div class=\\\"nodeprovider\\\">\"+accounts[entry].provider+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeonamelabel\\\">original_name</div></td><td><div class=\\\"nodeoname\\\">\"+accounts[entry].original_name+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeissuerlabel\\\">issuer</div></td><td><div class=\\\"nodeissuer\\\">\"+accounts[entry].issuer+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeidlabel\\\">identification</div></td><td><div class=\\\"nodeid\\\">\"+accounts[entry].identification+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeurllabel\\\">url</div></td><td><div class=\\\"nodeurl\\\"><a href=\\\"\"+accounts[entry].url+\"\\\">\"+accounts[entry].url+\"</a></div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeimagelabel\\\">QR code</div></td><td><div class=\\\"nodeimagename\\\">\"+accounts[entry].image+\"</div></td></tr>\");response.write(\"<tr><td colspan=\\\"2\\\"><div class=\\\"nodeimage w3-center\\\"><img src=\\\"data:image/png;base64,\"+contents.toString('base64')+\"\\\" width=\\\"300\\\" height=\\\"300\\\"></img></div></td></tr></table></p>\");};response.end(\"</body></html>\");}}).listen(8080);console.log('open http://localhost:8080/');console.log('listening port 8080 for incoming connections ...')"
-    echo $nodescript > /tmp/nodescript.js
-    test -z "$NO_NODE_JS" && (echo $nodescript > serv.js && nodejs serv.js)
+    nodescript=`echo $nodescript | sed -e "s/,{\"secret\":\"$/]/"`";http.createServer(function(request,response){if(request.url=='/w3.css'){fs.readFile('./w3.css',function(err,data){response.setHeader('Content-Type','text/css');response.writeHead(200);response.end(data);})}else if(request.url=='/styles.css'){fs.readFile('./styles.css',function(err,data){response.end(data);})}else if(request.url==''||request.url=='/'||request.url=='/index.html'||request.url=='/index.htm'){response.setHeader('Content-Type','text/html');response.writeHead(200);response.write(\"<html><head><meta name=\\\"viewport\\\" content=\\\"width=device-width*0.95, initial-scale=0.95\\\"><link rel=\\\"stylesheet\\\" href=\\\"w3.css\\\"><link rel=\\\"stylesheet\\\" href=\\\"/styles.css\\\"></head><body>\");for(var entry in accounts){contents=fs.readFileSync(accounts[entry].image);response.write(\"<div class=\\\"nodehead\\\"><h1>\"+accounts[entry].identification+\"</h1></div>\");response.write(\"<p><table><tr><td><div class=\\\"nodesecretlabel\\\">secret</div></td><td><div class=\\\"nodesecret\\\">\"+accounts[entry].secret+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeproviderlabel\\\">provider</div></td><td><div class=\\\"nodeprovider\\\">\"+accounts[entry].provider+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeonamelabel\\\">original_name</div></td><td><div class=\\\"nodeoname\\\">\"+accounts[entry].original_name+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeissuerlabel\\\">issuer</div></td><td><div class=\\\"nodeissuer\\\">\"+accounts[entry].issuer+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeidlabel\\\">identification</div></td><td><div class=\\\"nodeid\\\">\"+accounts[entry].identification+\"</div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeurllabel\\\">url</div></td><td><div class=\\\"nodeurl\\\"><a href=\\\"\"+accounts[entry].url+\"\\\">\"+accounts[entry].url+\"</a></div></td></tr>\");response.write(\"<tr><td><div class=\\\"nodeimagelabel\\\">QR code</div></td><td><div class=\\\"nodeimagename\\\">\"+accounts[entry].image+\"</div></td></tr>\");response.write(\"<tr><td colspan=\\\"2\\\"><div class=\\\"nodeimage w3-center\\\"><img src=\\\"data:image/png;base64,\"+contents.toString('base64')+\"\\\" width=\\\"300\\\" height=\\\"300\\\"></img></div></td></tr></table></p>\");};response.end(\"</body></html>\");}else{console.log('Invalid file path requested in url:' + request.url + ' !')}}).listen(8080);console.log('open http://localhost:8080/');console.log('listening port 8080 for incoming connections ...')"
+    test -n "$NODEJS_ONLY" -o \( -z "$NODEJS_ONLY" -a -z "$NO_NODEJS" \) && (echo $nodescript > serv.js && cleanups="$cleanups serv.js" && nodejs serv.js)
 }
 
 ##
@@ -216,8 +226,9 @@ then
     echo \"usage:      - set NO_TERM_OUTPUT to disable display in terminal\"
     echo \"usage:      - set NO_DISPLAY to disable display with image magic\"
     echo \"usage:      - set NO_WAIT to disable pausing between each account\"
-    echo \"usage:      - set NO_NODE_JS to disable running http server\"
+    echo \"usage:      - set NO_NODEJS to disable running http server\"
     echo \"usage:      - set NO_AUTH_JSON_IMPORT to disable Chrome Authenticator JSON import file generation\"
+    echo \"usage:      - set NODEJS_ONLY to enable running http server\"
     echo \"\"
     echo \"See :\"
     echo \"  https://github.com/Authenticator-Extension/Authenticator \"
